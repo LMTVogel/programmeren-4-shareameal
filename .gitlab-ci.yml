@@ -8,41 +8,41 @@
 image: node:latest
 
 stages:
-  - test
-  - metrics
-  - deploy
+    - test
+    - metrics
+    - deploy
 
 cache:
-  key: $CI_COMMIT_REF_SLUG
-  paths:
-    - node_modules
+    key: $CI_COMMIT_REF_SLUG
+    paths:
+        - node_modules
 
 #
 # Global variables
 #
 variables:
-  DOCKER_HOST: tcp://docker:2375/
-  DOCKER_DRIVER: overlay2
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
 
 #
 # Run unittests
 #
 unittests:
-  image: markhobson/node-chrome:latest
-  stage: test
-  variables:
-    NODE_ENV: development
-    # DB_USER: $DB_USER
-    # DB_PASSWORD: $DB_PASSWORD
-    # DB_HOST: $DB_HOST
-    # DB_PORT: $DB_PORT
-    # DB_DATABASE: $DB_DATABASE
-  before_script:
-    - npm install --no-optional
-  script:
-    - echo 'Testing not implemented yet!'
-  only:
-    - master
+    image: markhobson/node-chrome:latest
+    stage: test
+    variables:
+        NODE_ENV: development
+        # DB_USER: $DB_USER
+        # DB_PASSWORD: $DB_PASSWORD
+        # DB_HOST: $DB_HOST
+        # DB_PORT: $DB_PORT
+        # DB_DATABASE: $DB_DATABASE
+    before_script:
+        - npm install --no-optional
+    script:
+        - echo 'Testing not implemented yet!'
+    only:
+        - main
 
 #
 # Run end-to-end tests
@@ -67,33 +67,33 @@ unittests:
 # https://docs.gitlab.com/ee/ci/examples/deployment/#using-dpl-with-docker
 #
 production:
-  stage: deploy
-  image: ruby:latest
-  script:
-    # Get your key at https://dashboard.heroku.com/account
-    # and add it to your project environment variables at GitLab.
-    - echo "Heroku api key = $HEROKU_API_KEY"
-    # The name of your app at Heroku. See https://dashboard.heroku.com/apps.
-    - echo "Heroku appname = $HEROKU_APP_NAME"
-    - apt-get update -qy
-    - apt-get install -y ruby-dev
-    - gem install dpl
-    - dpl --provider=heroku --app=$HEROKU_APP_NAME --api-key=$HEROKU_API_KEY
-  only:
-    - master
+    stage: deploy
+    image: ruby:latest
+    script:
+        # Get your key at https://dashboard.heroku.com/account
+        # and add it to your project environment variables at GitLab.
+        - echo "Heroku api key = $HEROKU_API_KEY"
+        # The name of your app at Heroku. See https://dashboard.heroku.com/apps.
+        - echo "Heroku appname = $HEROKU_APP_NAME"
+        - apt-get update -qy
+        - apt-get install -y ruby-dev
+        - gem install dpl
+        - dpl --provider=heroku --app=$HEROKU_APP_NAME --api-key=$HEROKU_API_KEY
+    only:
+        - main
 
 #
 # Example: Deploy to Google Firebase, as an alternative to Heroku
 #
 firebase:
-  stage: deploy
-  image: markhobson/node-chrome:latest
-  before_script:
-    - npm i --no-optional
-    - npm i -g firebase-tools
-  script:
-    - npm run build
-    - firebase deploy --token $FIREBASE_TOKEN
-  only:
-    # - master
-    - firebase-branch
+    stage: deploy
+    image: markhobson/node-chrome:latest
+    before_script:
+        - npm i --no-optional
+        - npm i -g firebase-tools
+    script:
+        - npm run build
+        - firebase deploy --token $FIREBASE_TOKEN
+    only:
+        # - master
+        - firebase-branch
