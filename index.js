@@ -22,7 +22,7 @@ app.get("/", (req, res) => {
     });
 });
 
-// Registers a new user in the database
+// Adds a new user in the database
 app.post("/api/user", (req, res) => {
     let user = req.body;
 
@@ -50,6 +50,20 @@ app.post("/api/user", (req, res) => {
             result: "Email is already in use",
         });
     }
+    // Gets all users from database
+}).get((req, res) => {
+    res.status(200).json({
+        status: 200,
+        result: database,
+    });
+});
+
+// Gets the profile of the requested user
+app.get("/api/user/profile", (req, res) => {
+    res.status(501).json({
+        status: 501,
+        result: "The requested endpoint is not yet realized",
+    });
 });
 
 app.all("*", (req, res) => {
