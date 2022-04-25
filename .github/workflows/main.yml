@@ -16,4 +16,4 @@ jobs:
               with:
                   heroku_api_key: ${{secrets.HEROKU_API_KEY}}
                   heroku_app_name: programmeren4-sam-api
-                  heroku_email: ${{secrets.EMAIL}}
+                  heroku_email: lmt.vogel@student.avans.nl
