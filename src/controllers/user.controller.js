@@ -5,27 +5,28 @@ let user_id = 0;
 let controller = {
     validateUser: (req, res, next) => {
         let user = req.body;
-        let object = {
-            name: "davide",
-            year: 2020,
-        };
         let {
             firstName,
             lastName,
             street,
             city,
+            isActive,
             emailAddress,
             phoneNumber,
             password,
         } = user;
-        // TODO: create more asserts to check types
+
         try {
-            assert(
-                typeof firstName === "string",
-                "First name must be a string"
-            );
-            assert(typeof lastName === "string", "Last name must be a string");
-            assert(typeof street === "string", "Street must be a string");
+            assert(typeof firstName === 'string', 'First name must be a string');
+            assert(typeof lastName === 'string', 'Last name must be a string');
+            assert(typeof street === 'string', 'Street must be a string');
+            assert(typeof city === 'string', 'City must be a string');
+            assert(typeof isActive === 'boolean', 'IsActive must be a boolean');
+            assert(typeof emailAddress === 'string', 'Email address must be a string');
+            assert(typeof phoneNumber === 'string', 'Phone number must be a string');
+            assert(typeof password === 'string', 'Password must a string');
+
+            next();
         } catch (err) {
             const error = {
                 status: 400,
