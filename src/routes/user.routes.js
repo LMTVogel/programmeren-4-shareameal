@@ -12,7 +12,7 @@ router.get("/", (req, res) => {
 router
     .route("/api/user")
     // Adds a new user in the database
-    .post(userController.addUser)
+    .post(userController.validateUser, userController.addUser)
     // Gets all users from database
     .get(userController.getAllUsers);
 
