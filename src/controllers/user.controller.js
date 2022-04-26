@@ -27,14 +27,13 @@ let controller = {
             assert(typeof lastName === "string", "Last name must be a string");
             assert(typeof street === "string", "Street must be a string");
         } catch (err) {
-            console.log(err);
-            res.status(400).json({
+            const error = {
                 status: 400,
                 result: err.message,
-            });
-        }
+            };
 
-        next();
+            next(error);
+        }
     },
     addUser: (req, res) => {
         let user = req.body;
@@ -70,7 +69,7 @@ let controller = {
             result: database,
         });
     },
-    getUserById: (req, res) => {
+    getUserById: (req, res, next) => {
         const userId = req.params.id;
         let user = database.find((item) => item.id == userId);
 
@@ -80,9 +79,12 @@ let controller = {
                 result: user,
             });
         } else {
-            res.status(404).json({
-                status: "User does not exist",
-            });
+            const error = {
+                status: 404,
+                result: "User does not exist",
+            };
+
+            next(error);
         }
     },
     updateUser: (req, res) => {
