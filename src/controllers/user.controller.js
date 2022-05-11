@@ -12,7 +12,7 @@ let controller = {
             street,
             city,
             isActive,
-            emailAddress,
+            emailAdress,
             phoneNumber,
             password,
         } = user;
@@ -23,7 +23,7 @@ let controller = {
             assert(typeof street === 'string', 'Street must be a string');
             assert(typeof city === 'string', 'City must be a string');
             assert(typeof isActive === 'boolean', 'IsActive must be a boolean');
-            assert(typeof emailAddress === 'string', 'Email address must be a string');
+            assert(typeof emailAdress === 'string', 'Email address must be a string');
             assert(typeof phoneNumber === 'string', 'Phone number must be a string');
             assert(typeof password === 'string', 'Password must a string');
 
@@ -31,7 +31,7 @@ let controller = {
         } catch (err) {
             const error = {
                 status: 400,
-                result: err.message,
+                message: err.message,
             };
 
             next(error);
@@ -40,30 +40,46 @@ let controller = {
     addUser: (req, res) => {
         let user = req.body;
 
-        if (isEmailUnique(user.emailAddress)) {
-            user_id++;
-            user = {
-                id: user_id,
-                firstName: user.firstName,
-                lastName: user.lastName,
-                street: user.street,
-                city: user.city,
-                emailAddress: user.emailAddress,
-                phoneNumber: user.phoneNumber,
-                password: user.password,
-                roles: user.roles,
-            };
-            database.push(user);
-            res.status(201).json({
-                status: 201,
-                result: database,
+        dbconnection.getConnection(function(connError, conn) {
+            // No connection
+            if (connError) {
+                res.status(502).json({
+                    status: 502,
+                    message: "Couldn't connect to the database"
+                });
+                return;
+            }
+
+            // Inserts the user into the database
+            conn.query(`INSERT INTO user SET ?`, user, function (dbError, result, fields) {
+                // Releases the connection when finished
+                conn.release();
+
+                // Handles the errors after the  release
+                if(dbError) {
+                    console.log(dbError);
+                    if(dbError.errno == 1062) {
+                        res.status(409).json({
+                            status: 409,
+                            message: "Email is already being used by another user"
+                        });
+                    } else {
+                        res.status(500).json({
+                            status: 500,
+                            message: "Error"
+                        });
+                    }
+                } else {
+                    res.status(201).json({
+                        status: 201,
+                        result: {
+                            id: result.insertId,
+                            ...user
+                        }
+                    });
+                }
             });
-        } else {
-            res.status(409).json({
-                status: 409,
-                result: "Email is already in use",
-            });
-        }
+        });
     },
     getAllUsers: (req, res) => {
         dbconnection.getConnection(function(err, connection) {
