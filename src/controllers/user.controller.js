@@ -108,21 +108,44 @@ let controller = {
     },
     getUserById: (req, res, next) => {
         const userId = req.params.id;
-        let user = database.find((item) => item.id == userId);
-
-        if (user) {
-            res.status(200).json({
-                status: 200,
-                result: user,
+        dbconnection.getConnection(function(connError, conn) {
+            // No connection for databases
+            if (connError) {
+                res.status(502).json({
+                    status: 502,
+                    result: "Couldn't connect to database"
+                }); 
+                
+                return;
+            }
+            
+            conn.query('SELECT * FROM user WHERE id = ' + userId, function (dbError, results, fields) {
+                // When done with the connection, release it.
+                conn.release();
+                
+                // Handle error after the release.
+                if (dbError) {
+                    console.log(dbError);
+                    res.status(500).json({
+                        status: 500,
+                        result: "Error"
+                    }); return;
+                }
+                
+                const result = results[0];
+                if(result) {
+                    res.status(200).json({
+                        status: 200,
+                        result: result
+                    });
+                } else {
+                    res.status(404).json({
+                        status: 404,
+                        message: "User does not exist"
+                    });
+                }
             });
-        } else {
-            const error = {
-                status: 404,
-                result: "User does not exist",
-            };
-
-            next(error);
-        }
+        });
     },
     updateUser: (req, res) => {
         let newUserInfo = req.body;
