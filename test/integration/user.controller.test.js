@@ -131,4 +131,60 @@ describe("Manage users api/user", () => {
             });
         });
     });
+
+    describe('UC-204 get a user by id', () => {
+        beforeEach((done) => {
+            // Connect to the database
+            dbconnection.getConnection(function (connError, conn) {
+                if (connError) throw connError;
+
+                // Clear the database for testing
+                conn.query(CLEAR_DB + INSERT_USER_1, function (dbError, results, fields) {
+                        // When done with the connection, release it
+                        conn.release();
+
+                        // Handle error after the release
+                        if (dbError) throw dbError;
+
+                        done();
+                    }
+                )
+            });
+        });
+
+        it(`TC-204-2 If the user doesn't exist, a valid error should be returned.`, (done) => {
+            chai.request(server).get('/api/user/0')
+            .end((err, res) => {
+                assert.ifError(err);
+
+                res.should.have.status(404);
+                res.should.be.an('object');
+                res.body.should.be.an('object').that.has.all.keys('status', 'message');
+
+                let { status, message } = res.body;
+                status.should.be.a('number');
+                message.should.be.a('string').that.contains('User does not exist');
+
+                done();
+            });
+        });
+
+        it('TC-204-3 User exists and returns the correct keys', (done) => {
+            chai.request(server).get('/api/user/1')
+            .end((err, res) => {
+                assert.ifError(err);
+
+                res.should.have.status(200);
+                res.should.be.an('object');
+                res.body.should.be.an('object').that.has.all.keys('status', 'result');
+
+                let { status, result } = res.body;
+                status.should.be.a('number');
+                result.should.be.a('object');
+                result.should.include.all.keys('id', 'firstName', 'lastName', 'street', 'city', 'isActive', 'emailAdress', 'password', 'roles');
+
+                done();
+            });
+        });
+    });
 });
