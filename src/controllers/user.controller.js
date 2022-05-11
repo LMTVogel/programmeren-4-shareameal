@@ -69,6 +69,7 @@ let controller = {
         dbconnection.getConnection(function(err, connection) {
             if (err) throw err; // not connected!
           
+            
             // Use the connection
             connection.query('SELECT * FROM user', function (error, results, fields) {
               // When done with the connection, release it.
@@ -79,7 +80,7 @@ let controller = {
           
               // Don't use the connection here, it has been returned to the pool.
               console.log('Results = ', results);
-              
+
               res.status(200).json({
                   status: 200,
                   result: results
