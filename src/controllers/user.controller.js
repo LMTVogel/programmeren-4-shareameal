@@ -82,7 +82,7 @@ let controller = {
 
               res.status(200).json({
                   status: 200,
-                  result: results,
+                  result: results
               })
               
               pool.end((err) => {
