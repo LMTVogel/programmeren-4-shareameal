@@ -39,15 +39,15 @@ jobs:
             - name: npm test
               run: |
                   npm test -- --DB_PASSWORD $MYSQL_ROOT_PASSWORD --DB_USER root --DB_NAME $DB_DATABASE
-
     deploy:
+        needs: integrationtests
         runs-on: ubuntu-latest
         environment:
             name: Heroku # naam van mijn environment op GitHub
         steps:
             - uses: actions/checkout@v2
             - uses: akhileshns/heroku-deploy@v3.12.12
-            with:
-                heroku_api_key: ${{secrets.HEROKU_API_KEY}}
-                heroku_app_name: programmeren4-sam-api
-                heroku_email: lmt.vogel@student.avans.nl
+              with:
+                  heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+                  heroku_app_name: programmeren4-sam-api
+                  heroku_email: lmt.vogel@student.avans.nl
