@@ -194,26 +194,24 @@ let controller = {
             });
         });
     },
-    getUserById: (req, res, next) => {
+    getUserById: (req, res) => {
         const userId = req.params.id;
         dbconnection.getConnection(function(connError, conn) {
-            // No connection for databases
+            // Not connected
             if (connError) {
                 res.status(502).json({
                     status: 502,
                     result: "Couldn't connect to database"
-                }); 
-                
-                return;
+                }); return;
             }
             
             conn.query('SELECT * FROM user WHERE id = ' + userId, function (dbError, results, fields) {
-                // When done with the connection, release it.
+                // Releases the connection when finnished
                 conn.release();
                 
-                // Handle error after the release.
+                // Handles the error after the release
                 if (dbError) {
-                    console.log(dbError);
+                    logger.error(dbError);
                     res.status(500).json({
                         status: 500,
                         result: "Error"

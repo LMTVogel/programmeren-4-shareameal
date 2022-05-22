@@ -21,12 +21,6 @@ router
 router.get("/user/profile", authController.validateToken, userController.getUserProfile)
 
 // Gets the user by id
-router
-    .route("/user/:id")
-    .get(userController.getUserById)
-    // Updates the user
-    .put(userController.updateUser)
-    // Deletes the user from the database
-    .delete(userController.deleteUser);
+router.get("/user/:id", authController.validateToken, userController.validateId, userController.getUserById)
 
 module.exports = router;
