@@ -1,39 +1,32 @@
 const assert = require("assert");
 const dbconnection = require("../../database/dbconnection");
 let database = [];
-let user_id = 0;
+const logger = require('../config/tracer_config').logger;
+const emailValidator = require("email-validator");
 
 let controller = {
     validateUser: (req, res, next) => {
         let user = req.body;
-        let {
-            firstName,
-            lastName,
-            street,
-            city,
-            isActive,
-            emailAdress,
-            phoneNumber,
-            password,
-        } = user;
-
+        let {firstName, lastName, street, city, isActive, emailAdress, phoneNumber, password} = user;
         try {
-            assert(typeof firstName === 'string', 'First name must be a string');
-            assert(typeof lastName === 'string', 'Last name must be a string');
+            //Checks the fields for the correct types
+            assert(typeof firstName === 'string', 'Firstname must be a string');
+            assert(typeof lastName === 'string', 'LastName must be a string');
             assert(typeof street === 'string', 'Street must be a string');
             assert(typeof city === 'string', 'City must be a string');
             assert(typeof isActive === 'boolean', 'IsActive must be a boolean');
-            assert(typeof emailAdress === 'string', 'Email address must be a string');
-            assert(typeof phoneNumber === 'string', 'Phone number must be a string');
+            assert(typeof emailAdress === 'string', 'EmailAddress must be a string');
+            assert(typeof phoneNumber === 'string', 'PhoneNumber must be a string');
             assert(typeof password === 'string', 'Password must a string');
 
             next();
         } catch (err) {
             const error = {
                 status: 400,
-                message: err.message,
-            };
+                message: err.message
+            }
 
+            logger.debug(error);
             next(error);
         }
     },
