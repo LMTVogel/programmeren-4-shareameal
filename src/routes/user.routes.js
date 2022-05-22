@@ -10,14 +10,14 @@ router.get("/", (req, res) => {
 });
 
 router
-    .route("/api/user")
+    .route("/user")
     // Adds a new user in the database
     .post(userController.validateUser, userController.addUser)
     // Gets all users from database
     .get(userController.getAllUsers);
 
 // Gets the profile of the requested user
-router.get("/api/user/profile", (req, res) => {
+router.get("/user/profile", (req, res) => {
     res.status(501).json({
         status: 501,
         result: "The requested endpoint is not yet realized",
@@ -26,7 +26,7 @@ router.get("/api/user/profile", (req, res) => {
 
 // Gets the user by id
 router
-    .route("/api/user/:id")
+    .route("/user/:id")
     .get(userController.getUserById)
     // Updates the user
     .put(userController.updateUser)

@@ -5,7 +5,8 @@ const port = process.env.PORT;
 
 const bodyParser = require("body-parser");
 const { get } = require("express/lib/response");
-const router = require("./src/routes/user.routes");
+const authRouter = require("./src/routes/auth.routes");
+const userRouter = require("./src/routes/user.routes");
 
 app.use(bodyParser.json());
 
@@ -15,7 +16,9 @@ app.all("*", (req, res, next) => {
     next();
 });
 
-app.use(router);
+const baseUrl = "/api";
+app.use(baseUrl, authRouter);
+app.use(baseUrl, userRouter);
 
 app.all("*", (req, res) => {
     res.status(404).json({
