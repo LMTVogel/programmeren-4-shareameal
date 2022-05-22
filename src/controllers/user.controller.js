@@ -30,10 +30,25 @@ let controller = {
             next(error);
         }
     },
+    validateId: (req, res, next) => {
+        const userId = req.params.id;
+        try {
+            assert(Number.isInteger(parseInt(userId)), "ID must be a number");
+            next();
+        } catch (err) {
+            const error = {
+                status: 400,
+                message: err.message
+            }
+
+            logger.debug(error);
+            next(error);
+        }
+    },
     addUser: (req, res) => {
         let user = req.body;
         dbconnection.getConnection(function(connError, conn) {
-            //Not connected
+            // Not connected
             if (connError) {
                 res.status(502).json({
                     status: 502,
@@ -41,7 +56,7 @@ let controller = {
                 }); return;
             }
 
-            //Check if the email is valid
+            // Checks if the email is valid
             if(!emailValidator.validate(user.emailAdress)) {
                 res.status(400).json({
                     status: 400,
@@ -49,7 +64,7 @@ let controller = {
                 }); return;
             }
 
-            //Check if the password is valid
+            // Checks if the password is valid
             const passwordRegex = /(?=.*[A-Z])(?=.*[0-9])(?=.{8,})/gm
             if(!passwordRegex.test(user.password)) {
                 res.status(400).json({
@@ -58,12 +73,12 @@ let controller = {
                 }); return;
             }
 
-            //Insert the user object into the database
+            // Inserts the user object into the database
             conn.query(`INSERT INTO user SET ?`, user, function (dbError, result, fields) {
-                // When done with the connection, release it.
+                // Releases the connection when finnished
                 conn.release();
 
-                // Handle error after the release.
+                // Handles the error after the release
                 if(dbError) {
                     logger.debug(dbError);
                     if(dbError.errno == 1062) {

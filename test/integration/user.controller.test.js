@@ -168,12 +168,12 @@ describe("Manage users api/user", () => {
             dbconnection.getConnection(function (connError, conn) {
                 if (connError) throw connError;
 
-                //Empties the database for testing
+                //Empties database for testing
                 conn.query(CLEAR_DB, function (dbError, results, fields) {
-                        // Release connection after no more further action.
+                        // Releases the connection when finnished
                         conn.release();
 
-                        // Handle error after the release.
+                        // Handles the error after the release
                         if (dbError) throw dbError;
 
                         done();
@@ -183,8 +183,60 @@ describe("Manage users api/user", () => {
         });
 
         it('TC 201-1 When a required input is missing, a valid error should be returned', (done) => {
-            chai.request(server).post('/api/user').send({
+            chai.request(server).post('/api/user').auth(testToken, { type: 'bearer' }).send({
                 //Firstname is missing
+                lastName: "Doe",
+                street: "Lovensdijkstraat 61",
+                city: "Breda",
+                isActive: true,
+                emailAdress: "j.doe@server.com",
+                phoneNumber: "+31612345678",
+                password: "verySecr3t"
+            })
+            .end((err, res) => {
+                assert.ifError(err);
+
+                res.should.have.status(400);
+                res.should.be.an('object');
+                res.body.should.be.an('object').that.has.all.keys('status', 'message');
+
+                let { status, message } = res.body;
+                status.should.be.a('number');
+                message.should.be.a('string').that.equals('Firstname must be a string');
+                
+                done();
+            });
+        });
+
+        it('TC 201-2 If the email is invalid, a valid error should be returned', (done) => {
+            chai.request(server).post('/api/user').auth(testToken, { type: 'bearer' }).send({
+                firstName: "John",
+                lastName: "Doe",
+                street: "Lovensdijkstraat 61",
+                city: "Breda",
+                isActive: true,
+                emailAdress: "test@testcom",
+                phoneNumber: "+31612345678",
+                password: "secret"
+            })
+            .end((err, res) => {
+                assert.ifError(err);
+
+                res.should.have.status(400);
+                res.should.be.an('object');
+                res.body.should.be.an('object').that.has.all.keys('status', 'message');
+
+                let { status, message } = res.body;
+                status.should.be.a('number');
+                message.should.be.a('string').that.equals('Email is not valid');
+                
+                done();
+            });
+        });
+
+        it('TC 201-3 If the password is invalid, a valid error should be returned', (done) => {
+            chai.request(server).post('/api/user').auth(testToken, { type: 'bearer' }).send({
+                firstName: "John",
                 lastName: "Doe",
                 street: "Lovensdijkstraat 61",
                 city: "Breda",
@@ -202,26 +254,26 @@ describe("Manage users api/user", () => {
 
                 let { status, message } = res.body;
                 status.should.be.a('number');
-                message.should.be.a('string').that.contains('First name must be a string');
+                message.should.be.a('string').that.equals('Password must contain at least one uppercase letter, one number and be 8 characters long');
                 
                 done();
-            });
+            });  
         });
 
         it('TC 201-4 If the email is already in use, a valid error should be returned', (done) => {
-            //Connect to the database
+            // Connects to the database
             dbconnection.getConnection(function (connError, conn) {
                 if (connError) throw connError;
 
-                //Empty database for testing
+                //Empties database for testing
                 conn.query(INSERT_USER_1, function (dbError, results, fields) {
-                        // Release connection after no more further action.
+                        // Releases the connection when finnished
                         conn.release();
 
-                        // Handle error after the release.
+                        // Handles the error after the release
                         if (dbError) throw dbError;
 
-                        chai.request(server).post('/api/user').send({
+                        chai.request(server).post('/api/user').auth(testToken, { type: 'bearer' }).send({
                             firstName: 'first',
                             lastName: "last",
                             street: "street",
@@ -229,7 +281,7 @@ describe("Manage users api/user", () => {
                             isActive: true,
                             emailAdress: "d.ambesi@avans.nl",
                             phoneNumber: "+31646386382",
-                            password: "secret"
+                            password: "verySecr3t"
                         })
                         .end((err, res) => {
                             assert.ifError(err);
@@ -240,7 +292,7 @@ describe("Manage users api/user", () => {
             
                             let { status, message } = res.body;
                             status.should.be.a('number');
-                            message.should.be.a('string').that.contains('Email is already being used by another user');
+                            message.should.be.a('string').that.equals('Email is already used');
                             
                             done();
                         });
@@ -250,7 +302,7 @@ describe("Manage users api/user", () => {
         });
 
         it('TC 201-5 A user was added succesfully', (done) => {
-            chai.request(server).post('/api/user').send({
+            chai.request(server).post('/api/user').auth(testToken, { type: 'bearer' }).send({
                 firstName: "first",
                 lastName: "last",
                 street: "street",
@@ -258,7 +310,7 @@ describe("Manage users api/user", () => {
                 isActive: true,
                 emailAdress: "email@server.nl",
                 phoneNumber: "+31635368583",
-                password: "secret"
+                password: "verySecr3t"
             })
             .end((err, res) => {
                 assert.ifError(err);
@@ -269,7 +321,7 @@ describe("Manage users api/user", () => {
 
                 let { status, result } = res.body;
                 status.should.be.a('number');
-                result.should.be.an('object').that.includes.keys('firstName', 'lastName', 'street', 'city', 'isActive', 'emailAdress', 'password');
+                result.should.be.an('object').that.includes.keys('id', 'firstName', 'lastName', 'isActive', 'emailAdress', 'password', 'phoneNumber', 'street', 'city');
                 
                 done();
             });
