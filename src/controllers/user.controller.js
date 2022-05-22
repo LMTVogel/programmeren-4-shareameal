@@ -39,33 +39,50 @@ let controller = {
     },
     addUser: (req, res) => {
         let user = req.body;
-
         dbconnection.getConnection(function(connError, conn) {
-            // No connection
+            //Not connected
             if (connError) {
                 res.status(502).json({
                     status: 502,
-                    message: "Couldn't connect to the database"
-                });
-                return;
+                    result: "Couldn't connect to database"
+                }); return;
             }
 
-            // Inserts the user into the database
+            //Check if the email is valid
+            if(!emailValidator.validate(user.emailAdress)) {
+                res.status(400).json({
+                    status: 400,
+                    message: "Email is not valid"
+                }); return;
+            }
+
+            //Check if the password is valid
+            const passwordRegex = /(?=.*[A-Z])(?=.*[0-9])(?=.{8,})/gm
+            if(!passwordRegex.test(user.password)) {
+                res.status(400).json({
+                    status: 400,
+                    message: "Password must contain at least one uppercase letter, one number and be 8 characters long"
+                }); return;
+            }
+
+            //Insert the user object into the database
             conn.query(`INSERT INTO user SET ?`, user, function (dbError, result, fields) {
-                // Releases the connection when finished
+                // When done with the connection, release it.
                 conn.release();
 
-                // Handles the errors after the  release
+                // Handle error after the release.
                 if(dbError) {
+                    logger.debug(dbError);
                     if(dbError.errno == 1062) {
                         res.status(409).json({
                             status: 409,
-                            message: "Email is already being used by another user"
+                            message: "Email is already used"
                         });
                     } else {
+                        logger.error(dbError);
                         res.status(500).json({
                             status: 500,
-                            message: "Error"
+                            result: "Error"
                         });
                     }
                 } else {
