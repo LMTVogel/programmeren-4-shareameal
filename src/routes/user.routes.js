@@ -23,4 +23,7 @@ router.get("/user/profile", authController.validateToken, userController.getUser
 // Gets the user by id
 router.get("/user/:id", authController.validateToken, userController.validateId, userController.getUserById)
 
+// Updates the user
+router.put("/user/:id", authController.validateToken, userController.validateId, userController.validateUser, userController.updateUser);
+
 module.exports = router;

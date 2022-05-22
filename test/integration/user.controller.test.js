@@ -575,4 +575,182 @@ describe("Manage users api/user", () => {
             });
         });
     });
+
+    describe('UC-205 update user', () => {
+        beforeEach((done) => {
+            //Connect to the database
+            dbconnection.getConnection(function (connError, conn) {
+                if (connError) throw connError;
+
+                //Empty database for testing
+                conn.query(CLEAR_DB + INSERT_USER_1, function (dbError, results, fields) {
+                        // When done with the connection, release it.
+                        conn.release();
+
+                        // Handle error after the release.
+                        if (dbError) throw dbError;
+
+                        done();
+                    }
+                )
+            });
+        });
+
+        it('TC-205-1 When a required input is missing, a valid error should be returned', (done) => {
+            chai.request(server).put('/api/user/1').auth(testToken, { type: 'bearer' }).send({
+                //Firstname is missing
+                lastName: "Doe",
+                street: "Lovensdijkstraat 61",
+                city: "Breda",
+                isActive: true,
+                emailAdress: "j.doe@server.com",
+                phoneNumber: "+31612345678",
+                password: "verySecr3t"
+            })
+            .end((err, res) => {
+                assert.ifError(err);
+
+                res.should.have.status(400);
+                res.should.be.an('object');
+                res.body.should.be.an('object').that.has.all.keys('status', 'message');
+
+                let { status, message } = res.body;
+                status.should.be.a('number');
+                message.should.be.a('string').that.equals('Firstname must be a string');
+                
+                done();
+            });
+        });
+
+        it('TC-205-3 If an invalid phonenumber is used, a valid error should be returned', (done) => {
+            chai.request(server).put('/api/user/1').auth(testToken, { type: 'bearer' }).send({
+                //Firstname is missing
+                firstName: "John",
+                lastName: "Doe",
+                street: "Lovensdijkstraat 61",
+                city: "Breda",
+                isActive: true,
+                emailAdress: "j.doe@server.com",
+                phoneNumber: "567843",
+                password: "verySecr3t"
+            })
+            .end((err, res) => {
+                assert.ifError(err);
+
+                res.should.have.status(400);
+                res.should.be.an('object');
+                res.body.should.be.an('object').that.has.all.keys('status', 'message');
+
+                let { status, message } = res.body;
+                status.should.be.a('number');
+                message.should.be.a('string').that.equals('Invalid phonenumber (Examples: +31612345678, 0612345678)');
+                
+                done();
+            });
+        });
+
+        it("TC-205-4 If the user doesn't exist, a valid error should be returned", () => {
+            const id = 0;
+
+            newUserInfo = {
+                firstName: "newFirst",
+                lastName: "newLast",
+                street: "newStreet",
+                city: "newCity",
+                isActive: true,
+                emailAdress: "newEmail@server.nl",
+                phoneNumber: "+31635368554",
+                password: "newverySecr3t"
+            }
+
+            chai.request(server).put(`/api/user/${id}`).auth(testToken, { type: 'bearer' }).send(newUserInfo)
+            .end((errorUpdate, res) => {
+                assert.ifError(errorUpdate);
+
+                res.should.have.status(400);
+                res.should.be.an('object');
+                res.body.should.be.an('object').that.has.all.keys('status', 'result');
+
+                let { status, result } = res.body;
+                status.should.be.a('number');
+                result.should.be.a('string').that.equals('User does not exist');
+            });
+        });
+
+        it("TC-205-5 Not logged in", (done) => {
+            chai.request(server).put('/api/user/1').auth("AnotherTokenThatDoesntExist", { type: 'bearer' }).send({
+                //Firstname is missing
+                firstName: "John",
+                lastName: "Doe",
+                street: "Lovensdijkstraat 61",
+                city: "Breda",
+                isActive: true,
+                emailAdress: "j.doe@server.com",
+                phoneNumber: "+31612345678",
+                password: "verySecr3t"
+            })
+            .end((err, res) => {
+                assert.ifError(err);
+
+                res.should.have.status(401);
+                res.should.be.an('object');
+                res.body.should.be.an('object').that.has.all.keys('status', 'message');
+
+                let { status, message } = res.body;
+                status.should.be.a('number');
+                message.should.be.a('string').that.equals('Not authorized');
+                
+                done();
+            });      
+        });
+
+        it('TC-205-6 Succesfully updates the user', (done) => {
+            const id = 1;
+            newUserInfo = {
+                firstName: 'Foo',
+                lastName: "Bar",
+                street: "Kerkstraat",
+                city: "Amsterdam",
+                isActive: true,
+                emailAdress: "f.bar@server.com",
+                phoneNumber: "+31624745783",
+                password: "verySecr3t"
+            }
+
+            chai.request(server).put(`/api/user/${id}`).auth(testToken, { type: 'bearer' }).send(newUserInfo)
+            .end((errorUpdate, res) => {
+                assert.ifError(errorUpdate);
+
+                res.should.have.status(200);
+                res.should.be.an('object');
+                res.body.should.be.an('object').that.has.all.keys('status', 'message', "result");
+
+                let { status, message } = res.body;
+                status.should.be.a('number');
+                message.should.be.a('string');
+
+                chai.request(server).get(`/api/user/${id}`).auth(testToken, { type: 'bearer' })
+                .end((errorGet, res) => {
+                    assert.ifError(errorGet);
+
+                    res.should.have.status(200);
+                    res.should.be.an('object');
+                    res.body.should.be.an('object').that.has.all.keys('status', 'result');
+
+                    let { status, result } = res.body;
+                    status.should.be.a('number');
+                    result.should.be.a('object');
+                    if(result.isActive === 0) {
+                        result.isActive = false;
+                    } else if(result.isActive === 1) {
+                        result.isActive = true;
+                    }
+
+                    result.should.contain(newUserInfo);
+
+                    done();
+                });
+            });
+        });
+    });
 });

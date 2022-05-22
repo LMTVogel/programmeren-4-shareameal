@@ -234,40 +234,56 @@ let controller = {
         });
     },
     updateUser: (req, res) => {
-        let newUserInfo = req.body;
+        const newUserInfo = req.body;
         const userId = req.params.id;
-        let userIndex = database.findIndex((obj) => obj.id == userId);
+        dbconnection.getConnection(function(connError, conn) {
+            // Not connected
+            if (connError) {
+                res.status(502).json({
+                    status: 502,
+                    result: "Couldn't connect to database"
+                }); return;
+            }
 
-        if (userIndex > -1) {
-            if (Array.isArray(newUserInfo.roles)) {
-                database[userIndex] = {
-                    id: parseInt(userId),
-                    firstName: newUserInfo.firstName,
-                    lastName: newUserInfo.lastName,
-                    street: newUserInfo.street,
-                    city: newUserInfo.city,
-                    phoneNumber: newUserInfo.phoneNumber,
-                    password: newUserInfo.password,
-                    emailAdress: newUserInfo.emailAdress,
-                    roles: newUserInfo.roles,
-                };
-
-                res.status(200).json({
-                    status: 200,
-                    result: database[userIndex],
-                });
-            } else {
+            // Checks if the phonenumber is valid
+            const phoneNumberRegex = /(^\+[0-9]{2}|^\+[0-9]{2}\(0\)|^\(\+[0-9]{2}\)\(0\)|^00[0-9]{2}|^0)([0-9]{9}$|[0-9\-\s]{10}$)/gm
+            if(!phoneNumberRegex.test(newUserInfo.phoneNumber)) {
                 res.status(400).json({
                     status: 400,
-                    result: "Roles must be an array",
-                });
+                    message: "Invalid phonenumber (Examples: +31612345678, 0612345678)"
+                }); return;
             }
-        } else {
-            res.status(404).json({
-                status: 404,
-                result: "User not found",
+            
+            conn.query('UPDATE user SET ? WHERE id = ?', [newUserInfo, userId], function (dbError, results, fields) {
+                // Releases the connection when finnished
+                conn.release();
+                
+                // Handles the error after the release.
+                if(results.affectedRows > 0) {
+                    res.status(200).json({
+                        status: 200,
+                        message: `${userId} successfully updated`,
+                        result: {
+                            id: userId,
+                            ...newUserInfo
+                        }
+                    });
+                } else {
+                    if(dbError == null) {
+                        res.status(400).json({
+                            status: 400,
+                            result: "User does not exist"
+                        });
+                    } else {
+                        logger.error(dbError);
+                        res.status(500).json({
+                            status: 500,
+                            result: "Error"
+                        });
+                    }
+                }
             });
-        }
+        });
     },
     deleteUser: (req, res) => {
         const userId = req.params.id;
