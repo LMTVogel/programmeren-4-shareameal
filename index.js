@@ -7,6 +7,7 @@ const bodyParser = require("body-parser");
 const { get } = require("express/lib/response");
 const authRouter = require("./src/routes/auth.routes");
 const userRouter = require("./src/routes/user.routes");
+const mealRouter = require("./src/routes/meal.routes");
 
 app.use(bodyParser.json());
 
@@ -19,6 +20,7 @@ app.all("*", (req, res, next) => {
 const baseUrl = "/api";
 app.use(baseUrl, authRouter);
 app.use(baseUrl, userRouter);
+app.use(baseUrl, mealRouter);
 
 app.all("*", (req, res) => {
     res.status(404).json({

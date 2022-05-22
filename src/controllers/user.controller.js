@@ -118,7 +118,7 @@ let controller = {
         if(!phoneNumber) { phoneNumber = '%'}
 
         dbconnection.getConnection(function(connError, conn) {
-            //Not connected
+            // Not connected
             if (connError) {
                 res.status(502).json({
                     status: 502,
@@ -129,10 +129,10 @@ let controller = {
             conn.query(`SELECT id, firstName, lastName, isActive, emailAdress, phoneNumber, roles, street, city 
             FROM user WHERE id LIKE ? AND firstName LIKE ? AND lastName LIKE ? AND street LIKE ? AND city LIKE ? AND isActive LIKE ? AND emailAdress LIKE ? AND phoneNumber LIKE ?`,
             [id, '%' + firstName + '%', '%' + lastName + '%', '%' + street + '%', '%' + city + '%', isActive, '%' + emailAdress + '%', '%' + phoneNumber + '%'], function (dbError, results, fields) {
-                // When done with the connection, release it.
+                // Releases the connection when finnished
                 conn.release();
                 
-                // Handle error after the release.
+                // Handles the error after the release
                 if (dbError) {
                     if(dbError.errno === 1064) {
                         res.status(400).json({
@@ -153,28 +153,65 @@ let controller = {
                     result: results
                 });
             });
-        });   
+        });
     },
-    getUserById: (req, res, next) => {
-        const userId = req.params.id;
+    getUserProfile: (req, res) => {
+        const userId = req.userId;
         dbconnection.getConnection(function(connError, conn) {
-            // No connection for databases
+            // Not connected
             if (connError) {
                 res.status(502).json({
                     status: 502,
                     result: "Couldn't connect to database"
-                }); 
-                
-                return;
+                }); return;
             }
             
             conn.query('SELECT * FROM user WHERE id = ' + userId, function (dbError, results, fields) {
-                // When done with the connection, release it.
+                // Releases the connection when finnished
                 conn.release();
                 
-                // Handle error after the release.
+                // Handles the error after the release
                 if (dbError) {
-                    console.log(dbError);
+                    logger.error(dbError);
+                    res.status(500).json({
+                        status: 500,
+                        result: "Error"
+                    }); return;
+                }
+                
+                const result = results[0];
+                if(result) {
+                    res.status(200).json({
+                        status: 200,
+                        result: result
+                    });
+                } else {
+                    res.status(404).json({
+                        status: 404,
+                        message: "User does not exist"
+                    });
+                }
+            });
+        });
+    },
+    getUserById: (req, res) => {
+        const userId = req.params.id;
+        dbconnection.getConnection(function(connError, conn) {
+            // Not connected
+            if (connError) {
+                res.status(502).json({
+                    status: 502,
+                    result: "Couldn't connect to database"
+                }); return;
+            }
+            
+            conn.query('SELECT * FROM user WHERE id = ' + userId, function (dbError, results, fields) {
+                // Releases the connection when finnished
+                conn.release();
+                
+                // Handles the error after the release
+                if (dbError) {
+                    logger.error(dbError);
                     res.status(500).json({
                         status: 500,
                         result: "Error"
@@ -197,70 +234,105 @@ let controller = {
         });
     },
     updateUser: (req, res) => {
-        let newUserInfo = req.body;
+        const newUserInfo = req.body;
         const userId = req.params.id;
-        let userIndex = database.findIndex((obj) => obj.id == userId);
+        dbconnection.getConnection(function(connError, conn) {
+            // Not connected
+            if (connError) {
+                res.status(502).json({
+                    status: 502,
+                    result: "Couldn't connect to database"
+                }); return;
+            }
 
-        if (userIndex > -1) {
-            if (Array.isArray(newUserInfo.roles)) {
-                database[userIndex] = {
-                    id: parseInt(userId),
-                    firstName: newUserInfo.firstName,
-                    lastName: newUserInfo.lastName,
-                    street: newUserInfo.street,
-                    city: newUserInfo.city,
-                    phoneNumber: newUserInfo.phoneNumber,
-                    password: newUserInfo.password,
-                    emailAdress: newUserInfo.emailAdress,
-                    roles: newUserInfo.roles,
-                };
-
-                res.status(200).json({
-                    status: 200,
-                    result: database[userIndex],
-                });
-            } else {
+            // Checks if the phonenumber is valid
+            const phoneNumberRegex = /(^\+[0-9]{2}|^\+[0-9]{2}\(0\)|^\(\+[0-9]{2}\)\(0\)|^00[0-9]{2}|^0)([0-9]{9}$|[0-9\-\s]{10}$)/gm
+            if(!phoneNumberRegex.test(newUserInfo.phoneNumber)) {
                 res.status(400).json({
                     status: 400,
-                    result: "Roles must be an array",
-                });
+                    message: "Invalid phonenumber (Examples: +31612345678, 0612345678)"
+                }); return;
             }
-        } else {
-            res.status(404).json({
-                status: 404,
-                result: "User not found",
+            
+            conn.query('UPDATE user SET ? WHERE id = ?', [newUserInfo, userId], function (dbError, results, fields) {
+                // Releases the connection when finnished
+                conn.release();
+                
+                // Handles the error after the release.
+                if(results.affectedRows > 0) {
+                    res.status(200).json({
+                        status: 200,
+                        message: `${userId} successfully updated`,
+                        result: {
+                            id: userId,
+                            ...newUserInfo
+                        }
+                    });
+                } else {
+                    if(dbError == null) {
+                        res.status(400).json({
+                            status: 400,
+                            result: "User does not exist"
+                        });
+                    } else {
+                        logger.error(dbError);
+                        res.status(500).json({
+                            status: 500,
+                            result: "Error"
+                        });
+                    }
+                }
             });
-        }
+        });
     },
     deleteUser: (req, res) => {
         const userId = req.params.id;
-        let userIndex = database.findIndex((obj) => obj.id == userId);
+        const tokenUserId = req.userId;
+        dbconnection.getConnection(function(connError, conn) {
+            // Not connected
+            if (connError) {
+                res.status(502).json({
+                    status: 502,
+                    result: "Couldn't connect to database"
+                }); return;
+            }
 
-        if (userIndex > -1) {
-            database.splice(userIndex, 1);
-
-            res.status(202).json({
-                status: 202,
-                result: "User is successfully deleted",
+            logger.debug("UserId =", userId);
+            logger.debug("TokenUserId =", tokenUserId);
+            if(userId != tokenUserId) {
+                res.status(403).json({
+                    status: 403,
+                    message: 'Not authorized',
+                }); return;
+            }
+            
+            conn.query('DELETE FROM user WHERE id = ?', userId, function (dbError, results, fields) {
+                // Releases the connection when finnished
+                conn.release();
+                
+                // Handles the error after the release
+                if(dbError) {
+                    logger.error(dbError);
+                    res.status(500).json({
+                        status: 500,
+                        result: "Error"
+                    }); return;
+                }
+                
+                if(results.affectedRows > 0) {
+                    res.status(200).json({
+                        status: 200,
+                        message: `User: ${userId} successfully deleted`
+                    });
+                } else {
+                    res.status(400).json({
+                        status: 400,
+                        message: "User does not exist"
+                    });
+                }
             });
-        } else {
-            res.status(404).json({
-                status: 404,
-                result: "User does not exist",
-            });
-        }
-    },
-};
-
-function isEmailUnique(emailAddress) {
-    const emailArray = database.filter(
-        (item) => item.emailAddress == emailAddress
-    );
-
-    if (emailArray.length > 0) {
-        return false;
+        });
     }
-    return true;
 }
 
 module.exports = controller;
