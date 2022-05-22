@@ -287,33 +287,52 @@ let controller = {
     },
     deleteUser: (req, res) => {
         const userId = req.params.id;
-        let userIndex = database.findIndex((obj) => obj.id == userId);
+        const tokenUserId = req.userId;
+        dbconnection.getConnection(function(connError, conn) {
+            // Not connected
+            if (connError) {
+                res.status(502).json({
+                    status: 502,
+                    result: "Couldn't connect to database"
+                }); return;
+            }
 
-        if (userIndex > -1) {
-            database.splice(userIndex, 1);
-
-            res.status(202).json({
-                status: 202,
-                result: "User is successfully deleted",
+            logger.debug("UserId =", userId);
+            logger.debug("TokenUserId =", tokenUserId);
+            if(userId != tokenUserId) {
+                res.status(403).json({
+                    status: 403,
+                    message: 'Not authorized',
+                }); return;
+            }
+            
+            conn.query('DELETE FROM user WHERE id = ?', userId, function (dbError, results, fields) {
+                // Releases the connection when finnished
+                conn.release();
+                
+                // Handles the error after the release
+                if(dbError) {
+                    logger.error(dbError);
+                    res.status(500).json({
+                        status: 500,
+                        result: "Error"
+                    }); return;
+                }
+                
+                if(results.affectedRows > 0) {
+                    res.status(200).json({
+                        status: 200,
+                        message: `User: ${userId} successfully deleted`
+                    });
+                } else {
+                    res.status(400).json({
+                        status: 400,
+                        message: "User does not exist"
+                    });
+                }
             });
-        } else {
-            res.status(404).json({
-                status: 404,
-                result: "User does not exist",
-            });
-        }
-    },
-};
-
-function isEmailUnique(emailAddress) {
-    const emailArray = database.filter(
-        (item) => item.emailAddress == emailAddress
-    );
-
-    if (emailArray.length > 0) {
-        return false;
+        });
     }
-    return true;
 }
 
 module.exports = controller;

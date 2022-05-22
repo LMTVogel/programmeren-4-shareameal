@@ -26,4 +26,7 @@ router.get("/user/:id", authController.validateToken, userController.validateId,
 // Updates the user
 router.put("/user/:id", authController.validateToken, userController.validateId, userController.validateUser, userController.updateUser);
 
+// Deletes the user\
+router.delete("/user/:id", authController.validateToken, userController.validateId, userController.deleteUser);
+
 module.exports = router;
