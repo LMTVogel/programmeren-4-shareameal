@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const authController = require("../controllers/auth.controller");
 const userController = require("../controllers/user.controller");
 
 router.get("/", (req, res) => {
@@ -17,12 +18,7 @@ router
     .get(userController.getAllUsers);
 
 // Gets the profile of the requested user
-router.get("/user/profile", (req, res) => {
-    res.status(501).json({
-        status: 501,
-        result: "The requested endpoint is not yet realized",
-    });
-});
+router.get("/user/profile", authController.validateToken, userController.getUserProfile)
 
 // Gets the user by id
 router

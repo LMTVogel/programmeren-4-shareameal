@@ -155,6 +155,45 @@ let controller = {
             });
         });
     },
+    getUserProfile: (req, res) => {
+        const userId = req.userId;
+        dbconnection.getConnection(function(connError, conn) {
+            // Not connected
+            if (connError) {
+                res.status(502).json({
+                    status: 502,
+                    result: "Couldn't connect to database"
+                }); return;
+            }
+            
+            conn.query('SELECT * FROM user WHERE id = ' + userId, function (dbError, results, fields) {
+                // Releases the connection when finnished
+                conn.release();
+                
+                // Handles the error after the release
+                if (dbError) {
+                    logger.error(dbError);
+                    res.status(500).json({
+                        status: 500,
+                        result: "Error"
+                    }); return;
+                }
+                
+                const result = results[0];
+                if(result) {
+                    res.status(200).json({
+                        status: 200,
+                        result: result
+                    });
+                } else {
+                    res.status(404).json({
+                        status: 404,
+                        message: "User does not exist"
+                    });
+                }
+            });
+        });
+    },
     getUserById: (req, res, next) => {
         const userId = req.params.id;
         dbconnection.getConnection(function(connError, conn) {
