@@ -1,71 +1,96 @@
 const assert = require("assert");
 const dbconnection = require("../../database/dbconnection");
 let database = [];
-let user_id = 0;
+const logger = require('../config/tracer_config').logger;
+const emailValidator = require("email-validator");
 
 let controller = {
     validateUser: (req, res, next) => {
         let user = req.body;
-        let {
-            firstName,
-            lastName,
-            street,
-            city,
-            isActive,
-            emailAdress,
-            phoneNumber,
-            password,
-        } = user;
-
+        let {firstName, lastName, street, city, isActive, emailAdress, phoneNumber, password} = user;
         try {
-            assert(typeof firstName === 'string', 'First name must be a string');
-            assert(typeof lastName === 'string', 'Last name must be a string');
+            //Checks the fields for the correct types
+            assert(typeof firstName === 'string', 'Firstname must be a string');
+            assert(typeof lastName === 'string', 'LastName must be a string');
             assert(typeof street === 'string', 'Street must be a string');
             assert(typeof city === 'string', 'City must be a string');
             assert(typeof isActive === 'boolean', 'IsActive must be a boolean');
-            assert(typeof emailAdress === 'string', 'Email address must be a string');
-            assert(typeof phoneNumber === 'string', 'Phone number must be a string');
+            assert(typeof emailAdress === 'string', 'EmailAddress must be a string');
+            assert(typeof phoneNumber === 'string', 'PhoneNumber must be a string');
             assert(typeof password === 'string', 'Password must a string');
 
             next();
         } catch (err) {
             const error = {
                 status: 400,
-                message: err.message,
-            };
+                message: err.message
+            }
 
+            logger.debug(error);
+            next(error);
+        }
+    },
+    validateId: (req, res, next) => {
+        const userId = req.params.id;
+        try {
+            assert(Number.isInteger(parseInt(userId)), "ID must be a number");
+            next();
+        } catch (err) {
+            const error = {
+                status: 400,
+                message: err.message
+            }
+
+            logger.debug(error);
             next(error);
         }
     },
     addUser: (req, res) => {
         let user = req.body;
-
         dbconnection.getConnection(function(connError, conn) {
-            // No connection
+            // Not connected
             if (connError) {
                 res.status(502).json({
                     status: 502,
-                    message: "Couldn't connect to the database"
-                });
-                return;
+                    result: "Couldn't connect to database"
+                }); return;
             }
 
-            // Inserts the user into the database
+            // Checks if the email is valid
+            if(!emailValidator.validate(user.emailAdress)) {
+                res.status(400).json({
+                    status: 400,
+                    message: "Email is not valid"
+                }); return;
+            }
+
+            // Checks if the password is valid
+            const passwordRegex = /(?=.*[A-Z])(?=.*[0-9])(?=.{8,})/gm
+            if(!passwordRegex.test(user.password)) {
+                res.status(400).json({
+                    status: 400,
+                    message: "Password must contain at least one uppercase letter, one number and be 8 characters long"
+                }); return;
+            }
+
+            // Inserts the user object into the database
             conn.query(`INSERT INTO user SET ?`, user, function (dbError, result, fields) {
-                // Releases the connection when finished
+                // Releases the connection when finnished
                 conn.release();
 
-                // Handles the errors after the  release
+                // Handles the error after the release
                 if(dbError) {
+                    logger.debug(dbError);
                     if(dbError.errno == 1062) {
                         res.status(409).json({
                             status: 409,
-                            message: "Email is already being used by another user"
+                            message: "Email is already used"
                         });
                     } else {
+                        logger.error(dbError);
                         res.status(500).json({
                             status: 500,
-                            message: "Error"
+                            result: "Error"
                         });
                     }
                 } else {
@@ -81,30 +106,54 @@ let controller = {
         });
     },
     getAllUsers: (req, res) => {
-        dbconnection.getConnection(function(err, connection) {
-            if (err) throw err; // not connected!
-          
-            // Use the connection
-            connection.query('SELECT * FROM user', function (error, results, fields) {
-              // When done with the connection, release it.
-              connection.release();
-          
-              // Handle error after the release.
-              if (error) throw error;
-          
-              // Don't use the connection here, it has been returned to the pool.
-              console.log('Results = ', results);
+        let {id, firstName, lastName, street, city, isActive, emailAdress, phoneNumber} = req.query;
 
-              res.status(200).json({
-                  status: 200,
-                  result: results
-              })
-              
-              pool.end((err) => {
-                console.log('Pool was closed');
-              });
+        if(!id) { id = '%'}
+        if(!firstName) { firstName = '%' }
+        if(!lastName) { lastName = '%' }
+        if(!street) {street = '%' }
+        if(!city) { city = '%' }
+        if(!isActive) { isActive = '%' }
+        if(!emailAdress) { emailAdress = '%' }
+        if(!phoneNumber) { phoneNumber = '%'}
+
+        dbconnection.getConnection(function(connError, conn) {
+            //Not connected
+            if (connError) {
+                res.status(502).json({
+                    status: 502,
+                    result: "Couldn't connect to database"
+                }); return;
+            }
+            
+            conn.query(`SELECT id, firstName, lastName, isActive, emailAdress, phoneNumber, roles, street, city 
+            FROM user WHERE id LIKE ? AND firstName LIKE ? AND lastName LIKE ? AND street LIKE ? AND city LIKE ? AND isActive LIKE ? AND emailAdress LIKE ? AND phoneNumber LIKE ?`,
+            [id, '%' + firstName + '%', '%' + lastName + '%', '%' + street + '%', '%' + city + '%', isActive, '%' + emailAdress + '%', '%' + phoneNumber + '%'], function (dbError, results, fields) {
+                // When done with the connection, release it.
+                conn.release();
+                
+                // Handle error after the release.
+                if (dbError) {
+                    if(dbError.errno === 1064) {
+                        res.status(400).json({
+                            status: 400,
+                            message: "Something went wrong with the filter URL"
+                        }); return;
+                    } else {
+                        logger.error(dbError);
+                        res.status(500).json({
+                            status: 500,
+                            result: "Error"
+                        }); return;
+                    }
+                }
+                
+                res.status(200).json({
+                    status: 200,
+                    result: results
+                });
             });
-          });   
+        });   
     },
     getUserById: (req, res, next) => {
         const userId = req.params.id;
