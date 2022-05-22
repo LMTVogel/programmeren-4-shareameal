@@ -118,7 +118,7 @@ let controller = {
         if(!phoneNumber) { phoneNumber = '%'}
 
         dbconnection.getConnection(function(connError, conn) {
-            //Not connected
+            // Not connected
             if (connError) {
                 res.status(502).json({
                     status: 502,
@@ -129,10 +129,10 @@ let controller = {
             conn.query(`SELECT id, firstName, lastName, isActive, emailAdress, phoneNumber, roles, street, city 
             FROM user WHERE id LIKE ? AND firstName LIKE ? AND lastName LIKE ? AND street LIKE ? AND city LIKE ? AND isActive LIKE ? AND emailAdress LIKE ? AND phoneNumber LIKE ?`,
             [id, '%' + firstName + '%', '%' + lastName + '%', '%' + street + '%', '%' + city + '%', isActive, '%' + emailAdress + '%', '%' + phoneNumber + '%'], function (dbError, results, fields) {
-                // When done with the connection, release it.
+                // Releases the connection when finnished
                 conn.release();
                 
-                // Handle error after the release.
+                // Handles the error after the release
                 if (dbError) {
                     if(dbError.errno === 1064) {
                         res.status(400).json({
@@ -153,7 +153,7 @@ let controller = {
                     result: results
                 });
             });
-        });   
+        });
     },
     getUserById: (req, res, next) => {
         const userId = req.params.id;
